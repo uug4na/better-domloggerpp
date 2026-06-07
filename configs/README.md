@@ -1,5 +1,7 @@
 ## 📜 Configs
 
+- [hunt.json](hunt.json): All-in-one bug-hunting config. Hooks 161 high-value sinks across 16 tags (DOM-XSS, node-insertion/dynamic-script, jQuery HTML, string→code RCE, open-redirect/nav, postMessage/cross-window, CSPT/resource-loaders, prototype pollution, sanitizer-bypass + Trusted Types, DOM clobbering, dangerous attribute setters, storage/cookie/exfil). Filters the table to your canary (`globals.canary`, default `dl9z`) via the global `*` match, and pages a badge/notification when the canary—or a dangerous shape like `javascript:`/`<script>`/weak `postMessage` origin checks—reaches a sink. Seed `dl9z` into every input you control. Pair with [hunt-recon.json](hunt-recon.json).
+- [hunt-recon.json](hunt-recon.json): Attack-surface mapping companion to [hunt.json](hunt.json) — identical hooks/alerts but logs **every** sink hit (`*` match `/.*/`) so you can see which sinks an app exercises (and from where, via the `trace` column) before switching to the canary-filtered hunt config.
 - [GLOBAL.json](GLOBAL.json): The default configuration file automatically merges with the currently selected config. Aims to contain recurrent configurations like '*' > 'match'.
 - [cspp.json](cspp.json): Useful for searching for CSPP vulnerabilities by injecting an iframe with a custom CSPP payload on each page loading.
 - [cspt.json](cspt.json): Useful for searching for CSPT vulnerabilities in cases of path, query string, or hash reflection within fetch or resource loading.

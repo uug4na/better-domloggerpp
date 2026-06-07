@@ -1,0 +1,1424 @@
+{
+  "_description": "FLAGSHIP DOMLogger++ bug-hunting config (corrected). Canary='dl9z' filters the table to YOUR marker via the global '*' exec match; per-sink alerts page (badge+OS notification) on highest-signal arrivals. FIXES: dropped unhookable sinks (Location.prototype.* href/protocol/host/.../assign/replace, window/document.location non-configurable, SVGScriptElement.href getter-only); opener moved to instance path get/set:window.opener; every alert-bearing redirect/window.open/iframe/embed/object/document.write/sanitizer/clobber-coerce/message sink now defines its OWN broad 'match' so the alert can fire independent of the canary (the canary only gates the TABLE via '*', not these dangerous-shape alerts); DOMPurify.sanitize beforeEnter only rewrites STRING inputs (node inputs preserved); set:Element.prototype.innerHTML hooked ONCE (clobber gate now keyed on XSS tag which fires on canary->innerHTML or sanitizer entry); added XSS_DOM node-insertion/dynamic-script + Worker/SharedWorker sinks. 'Function' (constructor) intentionally NOT hooked so beforeEnter/afterEnter stay legal. removeHeaders strips CSP+XFO.",
+  "hooks": {
+    "XSS": {
+      "attribute": [
+        "set:Element.prototype.innerHTML",
+        "set:Element.prototype.outerHTML",
+        "set:ShadowRoot.prototype.innerHTML",
+        "set:HTMLIFrameElement.prototype.srcdoc"
+      ],
+      "function": [
+        "Element.prototype.insertAdjacentHTML",
+        "Element.prototype.insertAdjacentText",
+        "document.write",
+        "document.writeln",
+        "document.open",
+        "DOMParser.prototype.parseFromString",
+        "Range.prototype.createContextualFragment",
+        "document.implementation.createHTMLDocument",
+        "XMLSerializer.prototype.serializeToString",
+        "Element.prototype.setHTMLUnsafe",
+        "ShadowRoot.prototype.setHTMLUnsafe",
+        "Document.parseHTMLUnsafe"
+      ]
+    },
+    "XSS_DOM": {
+      "function": [
+        "Node.prototype.appendChild",
+        "Node.prototype.insertBefore",
+        "Node.prototype.replaceChild",
+        "Element.prototype.append",
+        "Element.prototype.prepend",
+        "Element.prototype.before",
+        "Element.prototype.after",
+        "Element.prototype.replaceWith",
+        "Element.prototype.insertAdjacentElement",
+        "Document.prototype.createElement",
+        "Document.prototype.createElementNS"
+      ],
+      "class": [
+        "Worker",
+        "SharedWorker"
+      ]
+    },
+    "XSS_JQUERY": {
+      "function": [
+        "jQuery.parseHTML",
+        "jQuery.prototype.html",
+        "jQuery.prototype.append",
+        "jQuery.prototype.prepend",
+        "jQuery.prototype.after",
+        "jQuery.prototype.before",
+        "jQuery.prototype.replaceWith",
+        "jQuery.prototype.wrap",
+        "jQuery.prototype.add"
+      ]
+    },
+    "RCE_JS": {
+      "function": [
+        "eval",
+        "setTimeout",
+        "setInterval",
+        "setImmediate",
+        "msSetImmediate",
+        "execScript",
+        "scheduler.postTask",
+        "window.requestIdleCallback"
+      ],
+      "attribute": [
+        "set:HTMLScriptElement.prototype.text",
+        "set:HTMLScriptElement.prototype.textContent",
+        "set:HTMLScriptElement.prototype.innerText",
+        "set:HTMLScriptElement.prototype.innerHTML",
+        "set:HTMLScriptElement.prototype.src"
+      ]
+    },
+    "REDIRECT": {
+      "attribute": [
+        "set:HTMLAnchorElement.prototype.href",
+        "set:HTMLAreaElement.prototype.href",
+        "set:HTMLBaseElement.prototype.href",
+        "set:HTMLFormElement.prototype.action",
+        "set:HTMLButtonElement.prototype.formAction",
+        "set:HTMLInputElement.prototype.formAction",
+        "set:HTMLMetaElement.prototype.content",
+        "set:Document.prototype.domain"
+      ],
+      "function": [
+        "window.open",
+        "history.pushState",
+        "history.replaceState"
+      ]
+    },
+    "POSTMSG": {
+      "function": [
+        "window.postMessage",
+        "MessagePort.prototype.postMessage",
+        "Worker.prototype.postMessage",
+        "BroadcastChannel.prototype.postMessage"
+      ],
+      "class": [
+        "BroadcastChannel",
+        "MessageChannel"
+      ],
+      "event": [
+        "message",
+        "messageerror"
+      ],
+      "attribute": [
+        "get:window.opener",
+        "set:window.opener"
+      ]
+    },
+    "CSPT": {
+      "function": [
+        "fetch",
+        "XMLHttpRequest.prototype.open",
+        "XMLHttpRequest.prototype.send",
+        "navigator.sendBeacon",
+        "WorkerGlobalScope.importScripts",
+        "importScripts",
+        "navigator.serviceWorker.register",
+        "Cache.prototype.add",
+        "Cache.prototype.put"
+      ],
+      "class": [
+        "Request",
+        "EventSource",
+        "WebSocket",
+        "URL",
+        "URLSearchParams"
+      ],
+      "attribute": [
+        "set:HTMLLinkElement.prototype.href",
+        "set:HTMLImageElement.prototype.src",
+        "set:HTMLImageElement.prototype.srcset",
+        "set:HTMLMediaElement.prototype.src",
+        "set:HTMLEmbedElement.prototype.src",
+        "set:HTMLObjectElement.prototype.data",
+        "set:HTMLSourceElement.prototype.src",
+        "set:HTMLSourceElement.prototype.srcset",
+        "set:HTMLTrackElement.prototype.src",
+        "set:HTMLIFrameElement.prototype.src"
+      ]
+    },
+    "PROTO_SOURCE": {
+      "attribute": [
+        "get:Location.prototype.hash",
+        "get:Location.prototype.search",
+        "get:window.name"
+      ]
+    },
+    "PROTO_TRANSPORT": {
+      "function": [
+        "JSON.parse",
+        "Object.assign",
+        "Object.defineProperty",
+        "Object.create",
+        "Object.setPrototypeOf"
+      ]
+    },
+    "PROTO_WRITE": {
+      "attribute": [
+        "set:Object.prototype.__proto__"
+      ]
+    },
+    "SANITIZER": {
+      "function": [
+        "DOMPurify.sanitize",
+        "DOMPurify.addHook",
+        "Element.prototype.setHTML",
+        "ShadowRoot.prototype.setHTML",
+        "trustedTypes.createPolicy",
+        "TrustedTypePolicy.prototype.createHTML",
+        "TrustedTypePolicy.prototype.createScriptURL"
+      ],
+      "class": [
+        "Sanitizer"
+      ]
+    },
+    "SANITIZER_OUTPUT_GADGET": {
+      "function": [
+        "String.prototype.replace",
+        "String.prototype.replaceAll",
+        "String.prototype.match",
+        "String.prototype.matchAll",
+        "String.prototype.search",
+        "RegExp.prototype.test",
+        "RegExp.prototype.exec"
+      ]
+    },
+    "CLOBBER_LOOKUP": {
+      "function": [
+        "document.getElementById",
+        "document.getElementsByName",
+        "document.querySelector",
+        "document.querySelectorAll",
+        "Element.prototype.querySelector",
+        "Element.prototype.querySelectorAll",
+        "HTMLCollection.prototype.namedItem"
+      ],
+      "attribute": [
+        "get:Document.prototype.forms",
+        "get:Document.prototype.images",
+        "get:Document.prototype.embeds",
+        "get:Document.prototype.scripts",
+        "get:Document.prototype.links",
+        "get:Document.prototype.anchors",
+        "get:HTMLElement.prototype.dataset"
+      ]
+    },
+    "CLOBBER_COERCE": {
+      "function": [
+        "HTMLAnchorElement.prototype.toString",
+        "HTMLAreaElement.prototype.toString"
+      ]
+    },
+    "ATTR": {
+      "attribute": [
+        "set:HTMLScriptElement.prototype.type",
+        "set:HTMLScriptElement.prototype.integrity",
+        "set:HTMLScriptElement.prototype.nonce",
+        "set:HTMLObjectElement.prototype.codeBase",
+        "set:HTMLLinkElement.prototype.rel",
+        "set:HTMLLinkElement.prototype.integrity",
+        "set:HTMLElement.prototype.style",
+        "set:CSSStyleDeclaration.prototype.cssText"
+      ],
+      "function": [
+        "Element.prototype.setAttribute",
+        "Element.prototype.setAttributeNS",
+        "Element.prototype.setAttributeNode",
+        "Element.prototype.setAttributeNodeNS",
+        "CSSStyleDeclaration.prototype.setProperty"
+      ]
+    },
+    "EXFIL": {
+      "attribute": [
+        "set:document.cookie",
+        "get:document.cookie",
+        "set:window.name"
+      ],
+      "function": [
+        "localStorage.setItem",
+        "localStorage.getItem",
+        "sessionStorage.setItem",
+        "sessionStorage.getItem",
+        "Storage.prototype.setItem",
+        "Storage.prototype.getItem",
+        "crypto.subtle.exportKey",
+        "crypto.subtle.encrypt",
+        "crypto.subtle.sign"
+      ]
+    }
+  },
+  "config": {
+    "*": {
+      "match": [
+        "exec:return new RegExp(domlogger.globals.canary)"
+      ],
+      "!match": [
+        "facebook",
+        "metamask",
+        "wappalyzer",
+        "google_tag_manager",
+        "googletagmanager",
+        "bitwarden",
+        "messenger_awaiter",
+        "grecaptcha",
+        "hcaptcha",
+        "challenges.cloudflare.com",
+        "=> __awaiter"
+      ],
+      "!matchTrace": [
+        "facebook",
+        "metamask",
+        "wappalyzer",
+        "google_tag_manager",
+        "googletagmanager",
+        "bitwarden",
+        "messenger_awaiter",
+        "grecaptcha",
+        "hcaptcha",
+        "challenges.cloudflare.com"
+      ]
+    },
+    "set:Element.prototype.innerHTML": {
+      "match": [
+        "exec:return new RegExp(domlogger.globals.canary)"
+      ],
+      "showThis": true,
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "!match": [
+          "^dl9z$"
+        ],
+        "notification": true
+      }
+    },
+    "set:Element.prototype.outerHTML": {
+      "showThis": true,
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "!match": [
+          "^dl9z$"
+        ],
+        "notification": true
+      }
+    },
+    "set:ShadowRoot.prototype.innerHTML": {
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "!match": [
+          "^dl9z$"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLIFrameElement.prototype.srcdoc": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "match": [
+          "exec:return new RegExp('^\\\\s*javascript:|' + domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "Element.prototype.insertAdjacentHTML": {
+      "showThis": true,
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "document.write": {
+      "match": [
+        "exec:return /<script[\\s>]/i.test(domlogger.utils.stringify(args)) ? /.*/ : new RegExp(domlogger.globals.canary)"
+      ],
+      "alert": {
+        "match": [
+          "exec:return /<script[\\s>]/i.test(domlogger.utils.stringify(args)) ? /.*/ : new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "document.writeln": {
+      "match": [
+        "exec:return /<script[\\s>]/i.test(domlogger.utils.stringify(args)) ? /.*/ : new RegExp(domlogger.globals.canary)"
+      ],
+      "alert": {
+        "match": [
+          "exec:return /<script[\\s>]/i.test(domlogger.utils.stringify(args)) ? /.*/ : new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "Range.prototype.createContextualFragment": {
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "DOMParser.prototype.parseFromString": {
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "Document.parseHTMLUnsafe": {
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "Element.prototype.setHTMLUnsafe": {
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "ShadowRoot.prototype.setHTMLUnsafe": {
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "XSS_DOM": {
+      "match": [
+        "exec:try { var a = args && args[0]; var nn = a && a.nodeName ? String(a.nodeName).toUpperCase() : ''; if (/^(SCRIPT|IFRAME|OBJECT|EMBED|SVG|LINK|BASE|META)$/.test(nn)) return /.*/; var s = domlogger.utils.stringify(args); var c = domlogger.globals && domlogger.globals.canary; if (c && s.indexOf(c) !== -1) return /.*/; if (/^(script|iframe|object|embed)$/i.test(domlogger.utils.stringify(a))) return /.*/; return /NOOOOOOOP/; } catch(e) { return /NOOOOOOOP/; }"
+      ],
+      "alert": {
+        "match": [
+          "exec:try { var a = args && args[0]; var nn = a && a.nodeName ? String(a.nodeName).toUpperCase() : ''; if (/^(SCRIPT|IFRAME|OBJECT|EMBED)$/.test(nn)) return /.*/; var c = domlogger.globals && domlogger.globals.canary; if (c && domlogger.utils.stringify(args).indexOf(c) !== -1) return /.*/; if (/^(script|iframe|object|embed)$/i.test(domlogger.utils.stringify(a))) return /.*/; return /NOOOOOOOP/; } catch(e) { return /NOOOOOOOP/; }"
+        ],
+        "notification": true
+      }
+    },
+    "Worker": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "SharedWorker": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "XSS_JQUERY": {
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "eval": {
+      "showThis": true,
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "execScript": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "setTimeout": {
+      "match": [
+        "exec:return (typeof args[0] === 'string') ? /.*/ : /NOOOOOOOP/"
+      ],
+      "!match": [
+        "=> __awaiter",
+        "webpackJsonp",
+        "__webpack_require__"
+      ],
+      "showThis": true,
+      "alert": {
+        "match": [
+          "exec:return (typeof args[0] === 'string') ? new RegExp(domlogger.globals.canary) : /NOOOOOOOP/"
+        ],
+        "notification": true
+      }
+    },
+    "setInterval": {
+      "match": [
+        "exec:return (typeof args[0] === 'string') ? /.*/ : /NOOOOOOOP/"
+      ],
+      "!match": [
+        "=> __awaiter",
+        "webpackJsonp",
+        "__webpack_require__"
+      ],
+      "showThis": true,
+      "alert": {
+        "match": [
+          "exec:return (typeof args[0] === 'string') ? new RegExp(domlogger.globals.canary) : /NOOOOOOOP/"
+        ],
+        "notification": true
+      }
+    },
+    "setImmediate": {
+      "match": [
+        "exec:return (typeof args[0] === 'string') ? /.*/ : /NOOOOOOOP/"
+      ]
+    },
+    "msSetImmediate": {
+      "match": [
+        "exec:return (typeof args[0] === 'string') ? /.*/ : /NOOOOOOOP/"
+      ]
+    },
+    "scheduler.postTask": {
+      "match": [
+        "exec:return (typeof args[0] === 'string') ? /.*/ : /NOOOOOOOP/"
+      ]
+    },
+    "window.requestIdleCallback": {
+      "match": [
+        "exec:return (typeof args[0] === 'string') ? /.*/ : /NOOOOOOOP/"
+      ]
+    },
+    "set:HTMLScriptElement.prototype.text": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLScriptElement.prototype.textContent": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLScriptElement.prototype.innerText": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLScriptElement.prototype.innerHTML": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLScriptElement.prototype.src": {
+      "showThis": true,
+      "!match": [
+        "recaptcha",
+        "gstatic.com/recaptcha",
+        "googletagmanager",
+        "google-analytics",
+        "connect.facebook.net",
+        "challenges.cloudflare.com",
+        "cdn.jsdelivr.net/npm",
+        "polyfill"
+      ],
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "REDIRECT": {
+      "!match": [
+        "^https?://(www\\.)?(google|gstatic|googleapis|doubleclick|facebook|connect\\.facebook|analytics|googletagmanager|cloudflareinsights|sentry|segment|hotjar|fullstory|cdn\\.|fonts\\.)",
+        "google_tag_manager",
+        "__awaiter"
+      ]
+    },
+    "window.open": {
+      "match": [
+        "^\\s*javascript:",
+        "^\\s*data:",
+        "^\\s*vbscript:",
+        "%6a%61%76%61%73%63%72%69%70%74",
+        "exec:return new RegExp(domlogger.globals.canary)"
+      ],
+      "alert": {
+        "match": [
+          "^\\s*javascript:",
+          "^\\s*data:",
+          "^\\s*vbscript:",
+          "%6a%61%76%61%73%63%72%69%70%74",
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLAnchorElement.prototype.href": {
+      "match": [
+        "^\\s*javascript:",
+        "^\\s*data:",
+        "^\\s*vbscript:",
+        "exec:return new RegExp(domlogger.globals.canary)"
+      ],
+      "alert": {
+        "match": [
+          "^\\s*javascript:",
+          "^\\s*data:text/html",
+          "^\\s*vbscript:"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLAreaElement.prototype.href": {
+      "match": [
+        "^\\s*javascript:",
+        "^\\s*data:",
+        "^\\s*vbscript:",
+        "exec:return new RegExp(domlogger.globals.canary)"
+      ],
+      "alert": {
+        "match": [
+          "^\\s*javascript:",
+          "^\\s*data:text/html",
+          "^\\s*vbscript:"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLBaseElement.prototype.href": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "match": [
+          ".*"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLFormElement.prototype.action": {
+      "match": [
+        "^\\s*https?://",
+        "^\\s*//",
+        "^\\s*javascript:",
+        "exec:return new RegExp(domlogger.globals.canary)"
+      ],
+      "alert": {
+        "match": [
+          "^\\s*https?://",
+          "^\\s*//",
+          "^\\s*javascript:"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLButtonElement.prototype.formAction": {
+      "match": [
+        "^\\s*https?://",
+        "^\\s*//",
+        "^\\s*javascript:",
+        "exec:return new RegExp(domlogger.globals.canary)"
+      ],
+      "alert": {
+        "match": [
+          "^\\s*https?://",
+          "^\\s*//",
+          "^\\s*javascript:"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLInputElement.prototype.formAction": {
+      "match": [
+        "^\\s*https?://",
+        "^\\s*//",
+        "^\\s*javascript:",
+        "exec:return new RegExp(domlogger.globals.canary)"
+      ],
+      "alert": {
+        "match": [
+          "^\\s*https?://",
+          "^\\s*//",
+          "^\\s*javascript:"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLMetaElement.prototype.content": {
+      "match": [
+        "exec:if(this && this.httpEquiv && /refresh/i.test(this.httpEquiv)){return /.*/}else{return /NOOOOOOOP/}"
+      ],
+      "alert": {
+        "match": [
+          "url\\s*=\\s*(javascript:|data:|https?://|//)"
+        ],
+        "notification": true
+      }
+    },
+    "set:Document.prototype.domain": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "match": [
+          ".*"
+        ],
+        "notification": true
+      }
+    },
+    "history.pushState": {
+      "match": [
+        "exec:return new RegExp(domlogger.globals.canary)"
+      ]
+    },
+    "history.replaceState": {
+      "match": [
+        "exec:return new RegExp(domlogger.globals.canary)"
+      ]
+    },
+    "window.postMessage": {
+      "match": [
+        "exec:return /.*/;"
+      ],
+      "beforeEnter": "$data=domlogger.utils.stringify(args[0]); $banwords=domlogger.hooksConfig?.['*']?.['!match']||[]; if (!$banwords.some(k => $data.includes(k))) { console.log(`%cpostMessage%c→%c${domlogger.utils.getWindowContext(this)}%c→%c${args[1]||'null'}%c ${$data}`, 'color: red', '', 'color: green', '', 'color: blue', '')}; return args",
+      "alert": {
+        "match": [
+          "exec:try{var o=args[1];}catch(e){return /NOOOOOOOP/;} if(o===undefined||o===null||o==='*'){return /.*/;} return /NOOOOOOOP/;",
+          "exec:try{return domlogger.globals && domlogger.globals.canary ? new RegExp(domlogger.globals.canary) : /NOOOOOOOP/;}catch(e){return /NOOOOOOOP/;}"
+        ],
+        "notification": true
+      }
+    },
+    "MessagePort.prototype.postMessage": {
+      "match": [
+        "exec:return /.*/;"
+      ],
+      "beforeEnter": "$data=domlogger.utils.stringify(args[0]); $banwords=domlogger.hooksConfig?.['*']?.['!match']||[]; if (!$banwords.some(k => $data.includes(k))) { console.log(`%cport.postMessage%c→%c${domlogger.utils.getWindowContext(this)}%c %c${$data}`, 'color: orange', '', 'color: green', '', 'color: blue')}; return args"
+    },
+    "Worker.prototype.postMessage": {
+      "match": [
+        "exec:return /.*/;"
+      ]
+    },
+    "BroadcastChannel.prototype.postMessage": {
+      "match": [
+        "exec:return /.*/;"
+      ],
+      "beforeEnter": "$data=domlogger.utils.stringify(args[0]); console.log(`%cBroadcastChannel.postMessage%c name=%c${(this&&this.name)||'?'}%c %c${$data}`, 'color: purple', '', 'color: green', '', 'color: blue'); return args"
+    },
+    "BroadcastChannel": {
+      "match": [
+        "exec:return /.*/;"
+      ]
+    },
+    "MessageChannel": {
+      "match": [
+        "exec:return /.*/;"
+      ]
+    },
+    "message": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "match": [
+          "\\.match\\(",
+          "\\.indexOf\\(",
+          "\\.endsWith\\(",
+          "\\.includes\\(",
+          "\\.replace\\(",
+          "\\.startsWith\\(",
+          "\\.search\\(",
+          "indexOf",
+          "includes",
+          "endsWith",
+          "startsWith",
+          "\\.innerHTML",
+          "\\.outerHTML",
+          "insertAdjacentHTML",
+          "document\\.write",
+          "postMessage",
+          "opener",
+          "parent\\.",
+          "top\\.",
+          "location",
+          "eval",
+          "Function\\(",
+          "setTimeout",
+          "\\.src",
+          "srcdoc"
+        ],
+        "!match": [
+          "event\\.origin ===",
+          "e\\.origin ===",
+          "evt\\.origin ===",
+          "origin !==",
+          "origin!=="
+        ],
+        "notification": true
+      }
+    },
+    "messageerror": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "match": [
+          "\\.innerHTML",
+          "eval",
+          "postMessage",
+          "opener",
+          "location"
+        ],
+        "notification": true
+      }
+    },
+    "get:window.opener": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "match": [
+          "exec:try{return domlogger.globals && domlogger.globals.canary ? new RegExp(domlogger.globals.canary) : /NOOOOOOOP/;}catch(e){return /NOOOOOOOP/;}"
+        ],
+        "notification": true
+      }
+    },
+    "set:window.opener": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "notification": true
+      }
+    },
+    "fetch": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "!match": [
+          "wappalyzer",
+          "sentry",
+          "datadog",
+          "newrelic",
+          "googletagmanager",
+          "google-analytics",
+          "doubleclick",
+          "hotjar",
+          "segment",
+          "fullstory",
+          "launchdarkly"
+        ],
+        "notification": true
+      }
+    },
+    "XMLHttpRequest.prototype.open": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "!match": [
+          "wappalyzer",
+          "sentry",
+          "datadog",
+          "newrelic",
+          "googletagmanager",
+          "google-analytics",
+          "doubleclick",
+          "hotjar",
+          "segment",
+          "fullstory",
+          "launchdarkly"
+        ],
+        "notification": true
+      }
+    },
+    "XMLHttpRequest.prototype.send": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "navigator.sendBeacon": {
+      "!match": [
+        "google-analytics",
+        "googletagmanager",
+        "doubleclick",
+        "/g/collect",
+        "stats.g",
+        "sentry",
+        "bugsnag",
+        "datadog",
+        "newrelic",
+        "nr-data",
+        "segment.io",
+        "amplitude",
+        "mixpanel",
+        "intercom",
+        "fullstory",
+        "hotjar"
+      ],
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "Request": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "!match": [
+          "wappalyzer",
+          "sentry",
+          "datadog",
+          "newrelic",
+          "googletagmanager",
+          "google-analytics",
+          "doubleclick"
+        ],
+        "notification": true
+      }
+    },
+    "WorkerGlobalScope.importScripts": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "importScripts": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "navigator.serviceWorker.register": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "EventSource": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "WebSocket": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLLinkElement.prototype.href": {
+      "!match": [
+        "gstatic.com",
+        "fonts.googleapis.com",
+        "googletagmanager",
+        "cdn.jsdelivr.net",
+        "cdnjs.cloudflare.com",
+        "favicon",
+        "manifest.json"
+      ],
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLIFrameElement.prototype.src": {
+      "match": [
+        "exec:return new RegExp('^\\\\s*javascript:|^\\\\s*data:|' + domlogger.globals.canary)"
+      ],
+      "!match": [
+        "googletagmanager",
+        "doubleclick",
+        "recaptcha",
+        "challenges.cloudflare.com",
+        "youtube.com/embed",
+        "about:blank"
+      ],
+      "alert": {
+        "match": [
+          "exec:return new RegExp('^\\\\s*javascript:|^\\\\s*data:|' + domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLEmbedElement.prototype.src": {
+      "match": [
+        "exec:return new RegExp('^(javascript|data):|' + domlogger.globals.canary)"
+      ],
+      "alert": {
+        "match": [
+          "exec:return new RegExp('^(javascript|data):|' + domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLObjectElement.prototype.data": {
+      "match": [
+        "exec:return new RegExp('^(javascript|data):|' + domlogger.globals.canary)"
+      ],
+      "alert": {
+        "match": [
+          "exec:return new RegExp('^(javascript|data):|' + domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLImageElement.prototype.src": {
+      "!match": [
+        "data:image",
+        "googletagmanager",
+        "google-analytics",
+        "doubleclick",
+        "facebook.com/tr",
+        "/pixel",
+        "1x1",
+        "spacer.gif",
+        "gravatar",
+        "googleusercontent",
+        "gstatic",
+        "cloudflareinsights"
+      ],
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "!match": [
+          "data:image"
+        ],
+        "notification": true
+      }
+    },
+    "set:HTMLImageElement.prototype.srcset": {
+      "!match": [
+        "data:image",
+        "googletagmanager",
+        "google-analytics",
+        "gstatic",
+        "googleusercontent"
+      ]
+    },
+    "set:HTMLMediaElement.prototype.src": {
+      "!match": [
+        "blob:"
+      ]
+    },
+    "URL": {
+      "!match": [
+        "blob:",
+        "data:",
+        "googletagmanager",
+        "google-analytics",
+        "doubleclick",
+        "fonts.gstatic",
+        "wappalyzer"
+      ]
+    },
+    "URLSearchParams": {
+      "match": [
+        "__proto__",
+        "constructor",
+        "prototype"
+      ]
+    },
+    "set:Object.prototype.__proto__": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "match": [
+          ".*"
+        ],
+        "notification": true
+      }
+    },
+    "Object.setPrototypeOf": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "match": [
+          ".*"
+        ],
+        "notification": true
+      }
+    },
+    "JSON.parse": {
+      "match": [
+        "__proto__",
+        "constructor",
+        "prototype"
+      ],
+      "!match": [
+        "wappalyzer",
+        "metamask",
+        "bitwarden",
+        "grecaptcha",
+        "hcaptcha",
+        "googletagmanager",
+        "google_tag_manager"
+      ],
+      "alert": {
+        "match": [
+          "__proto__",
+          "\\[\\s*[\"']?constructor[\"']?\\s*\\]\\s*\\[\\s*[\"']?prototype[\"']?\\s*\\]",
+          "constructor[\"']?\\s*\\.\\s*[\"']?prototype"
+        ],
+        "!match": [
+          "wappalyzer",
+          "metamask",
+          "bitwarden"
+        ],
+        "notification": true
+      }
+    },
+    "Object.assign": {
+      "match": [
+        "__proto__",
+        "\\bconstructor\\b",
+        "\\bprototype\\b"
+      ],
+      "!match": [
+        "=> __awaiter",
+        "wappalyzer",
+        "metamask",
+        "bitwarden",
+        "grecaptcha",
+        "hcaptcha"
+      ]
+    },
+    "Object.defineProperty": {
+      "match": [
+        "__proto__",
+        "constructor",
+        "prototype"
+      ],
+      "!match": [
+        "=> __awaiter",
+        "wappalyzer",
+        "metamask",
+        "bitwarden"
+      ]
+    },
+    "Object.create": {
+      "match": [
+        "__proto__",
+        "constructor",
+        "prototype"
+      ],
+      "!match": [
+        "=> __awaiter",
+        "wappalyzer",
+        "metamask",
+        "bitwarden"
+      ]
+    },
+    "get:Location.prototype.hash": {
+      "match": [
+        "__proto__",
+        "constructor",
+        "prototype"
+      ]
+    },
+    "get:Location.prototype.search": {
+      "match": [
+        "__proto__",
+        "constructor",
+        "prototype"
+      ]
+    },
+    "get:window.name": {
+      "match": [
+        "__proto__",
+        "constructor",
+        "prototype"
+      ]
+    },
+    "DOMPurify.sanitize": {
+      "beforeEnter": "if (typeof args[0] === 'string') { args[0] = domlogger.func['String.prototype.replace'].call(args[0], domlogger.globals.canary, domlogger.globals.canary+'-SANTAG'); } return args",
+      "showThis": true
+    },
+    "DOMPurify.addHook": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "match": [
+          "afterSanitizeAttributes",
+          "uponSanitizeElement",
+          "uponSanitizeAttribute",
+          "return"
+        ],
+        "notification": true
+      }
+    },
+    "Sanitizer": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "notification": true
+      }
+    },
+    "trustedTypes.createPolicy": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "match": [
+          "return input",
+          "return args",
+          "return s",
+          "return string",
+          "return html",
+          "return url"
+        ],
+        "notification": true
+      }
+    },
+    "TrustedTypePolicy.prototype.createHTML": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "TrustedTypePolicy.prototype.createScriptURL": {
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary)"
+        ],
+        "notification": true
+      }
+    },
+    "SANITIZER_OUTPUT_GADGET": {
+      "match": [
+        "exec:if(domlogger.utils.stringify(thisArg).includes(domlogger.globals.canary+'-SANTAG') || domlogger.utils.stringify(args).includes(domlogger.globals.canary+'-SANTAG')){return /.*/}else{return /NOOOOOOOP/}"
+      ],
+      "alert": {
+        "match": [
+          "exec:return new RegExp(domlogger.globals.canary+'-SANTAG')"
+        ],
+        "notification": true
+      }
+    },
+    "CLOBBER_LOOKUP": {
+      "requiredHooks": [
+        "XSS"
+      ],
+      "!match": [
+        "facebook",
+        "metamask",
+        "wappalyzer",
+        "googletagmanager",
+        "grecaptcha",
+        "hcaptcha",
+        "challenges.cloudflare.com"
+      ]
+    },
+    "CLOBBER_COERCE": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "requiredHooks": [
+        "XSS"
+      ],
+      "alert": {
+        "notification": true
+      }
+    },
+    "set:HTMLScriptElement.prototype.integrity": {
+      "match": [
+        "exec:return /.*/"
+      ]
+    },
+    "set:HTMLScriptElement.prototype.nonce": {
+      "match": [
+        "exec:return /.*/"
+      ]
+    },
+    "set:HTMLLinkElement.prototype.integrity": {
+      "match": [
+        "exec:return /.*/"
+      ]
+    },
+    "set:HTMLLinkElement.prototype.rel": {
+      "match": [
+        "exec:return /^(stylesheet|import|preload|modulepreload|prefetch)$/i"
+      ]
+    },
+    "Element.prototype.setAttribute": {
+      "match": [
+        "exec:try { var n=String(args[0]).toLowerCase(); var v=String(args[1]); var dangerous=/^(src|href|srcdoc|data|action|formaction|xlink:href|background|poster|codebase|integrity|nonce|style|content|rel)$/.test(n) || /^on/.test(n); var c=domlogger.globals && domlogger.globals.canary; var hasCanary = c && v.indexOf(c) !== -1; var proto=/^\\s*(javascript|data):/i.test(v); if (dangerous && (hasCanary || proto || /^on/.test(n))) { return /.*/; } return /NOOOOOOOP/; } catch(e) { return /NOOOOOOOP/; }"
+      ],
+      "alert": {
+        "match": [
+          "exec:try { var n=String(args[0]).toLowerCase(); var v=String(args[1]); if (/^on/.test(n)) return /.*/; if (/^\\s*javascript:/i.test(v)) return /.*/; var c=domlogger.globals && domlogger.globals.canary; if (c && (n==='src'||n==='srcdoc'||n==='data') && v.indexOf(c)!==-1) return /.*/; return /NOOOOOOOP/; } catch(e) { return /NOOOOOOOP/; }"
+        ],
+        "notification": true
+      }
+    },
+    "Element.prototype.setAttributeNS": {
+      "match": [
+        "exec:try { var n=String(args[1]).toLowerCase(); var v=String(args[2]); var dangerous=/(^|:)(href|src|srcdoc|data|action|formaction|style)$/.test(n) || /(^|:)on/.test(n); var c=domlogger.globals && domlogger.globals.canary; var hasCanary=c && v.indexOf(c)!==-1; var proto=/^\\s*(javascript|data):/i.test(v); if (dangerous && (hasCanary || proto || /(^|:)on/.test(n))) return /.*/; return /NOOOOOOOP/; } catch(e) { return /NOOOOOOOP/; }"
+      ]
+    },
+    "Element.prototype.setAttributeNode": {
+      "match": [
+        "exec:try { var a=args[0]; if(!a) return /NOOOOOOOP/; var n=String(a.name||'').toLowerCase(); var v=String(a.value||''); var dangerous=/^(src|href|srcdoc|data|action|formaction|style|integrity|nonce|rel)$/.test(n)||/^on/.test(n); var c=domlogger.globals && domlogger.globals.canary; if(dangerous && ((c && v.indexOf(c)!==-1) || /^\\s*(javascript|data):/i.test(v) || /^on/.test(n))) return /.*/; return /NOOOOOOOP/; } catch(e) { return /NOOOOOOOP/; }"
+      ]
+    },
+    "Element.prototype.setAttributeNodeNS": {
+      "match": [
+        "exec:try { var a=args[0]; if(!a) return /NOOOOOOOP/; var n=String(a.name||'').toLowerCase(); var v=String(a.value||''); var c=domlogger.globals && domlogger.globals.canary; if((c && v.indexOf(c)!==-1) || /^\\s*(javascript|data):/i.test(v) || /^on/.test(n)) return /.*/; return /NOOOOOOOP/; } catch(e) { return /NOOOOOOOP/; }"
+      ]
+    },
+    "set:HTMLElement.prototype.style": {
+      "match": [
+        "exec:try { var v=String(args); if(/url\\s*\\(|expression\\s*\\(|image-set|@import/i.test(v)) return /.*/; var c=domlogger.globals && domlogger.globals.canary; if(c && v.indexOf(c)!==-1) return /.*/; return /NOOOOOOOP/; } catch(e) { return /NOOOOOOOP/; }"
+      ]
+    },
+    "set:CSSStyleDeclaration.prototype.cssText": {
+      "match": [
+        "exec:try { var v=String(args); if(/url\\s*\\(|expression\\s*\\(|image-set|@import/i.test(v)) return /.*/; var c=domlogger.globals && domlogger.globals.canary; if(c && v.indexOf(c)!==-1) return /.*/; return /NOOOOOOOP/; } catch(e) { return /NOOOOOOOP/; }"
+      ]
+    },
+    "CSSStyleDeclaration.prototype.setProperty": {
+      "match": [
+        "exec:try { var v=String(args[1]); if(/url\\s*\\(|expression\\s*\\(|image-set/i.test(v)) return /.*/; var c=domlogger.globals && domlogger.globals.canary; if(c && v.indexOf(c)!==-1) return /.*/; return /NOOOOOOOP/; } catch(e) { return /NOOOOOOOP/; }"
+      ]
+    },
+    "set:document.cookie": {
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "get:document.cookie": {
+      "!match": [
+        "=> __awaiter"
+      ]
+    },
+    "set:window.name": {
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "localStorage.setItem": {
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "localStorage.getItem": {
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "sessionStorage.setItem": {
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "sessionStorage.getItem": {
+      "alert": {
+        "match": [
+          "dl9z"
+        ],
+        "notification": true
+      }
+    },
+    "crypto.subtle.exportKey": {
+      "match": [
+        "exec:return /.*/"
+      ],
+      "alert": {
+        "notification": true
+      }
+    }
+  },
+  "globals": {
+    "canary": "dl9z",
+    "CSPTBlacklist": [
+      "api"
+    ]
+  },
+  "onload": "domlogger.logger('DOMLogger++ hunt config live; canary=' + (domlogger.globals && domlogger.globals.canary));",
+  "removeHeaders": [
+    "content-security-policy",
+    "x-frame-options"
+  ]
+}
