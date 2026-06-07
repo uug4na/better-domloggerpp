@@ -4,6 +4,7 @@ const extensionAPI = typeof browser !== "undefined" ? browser : chrome;
 import {
     save,
     remove,
+    sanitizeHtml,
     updateUIDomains,
     updateUIButtons,
     updateUITable,
@@ -142,6 +143,26 @@ function handleChangeWebhookURL() {
 
     extensionAPI.storage.local.set({ webhookConfig: window.webhookConfig });
     errorMessage("Webhook URL updated!", window.errorWebhook);
+}
+
+// AI Bridge
+function handleSaveBridge() {
+    const url = document.getElementById("bridgeURL").value.trim();
+    const enabled = document.getElementById("bridgeEnabled").checked;
+    if (url) {
+        try {
+            const u = new URL(url);
+            if (u.protocol !== "ws:" && u.protocol !== "wss:") {
+                errorMessage("Bridge URL must be ws:// or wss://", window.errorBridge);
+                return;
+            }
+        } catch {
+            errorMessage("Invalid bridge URL!", window.errorBridge);
+            return;
+        }
+    }
+    extensionAPI.storage.local.set({ bridgeConfig: { url, enabled } });
+    errorMessage(enabled && url ? "Bridge saved & enabled!" : "Bridge settings saved!", window.errorBridge, "success");
 }
 
 function handleChangeBody() {
@@ -390,6 +411,58 @@ function handleImport(e) {
     reader.readAsText(file);
 }
 
+// Config library events
+function handleOpenLibrary() {
+    const modal = document.getElementById("library-modal");
+    const list = document.getElementById("library-list");
+    list.innerHTML = "<i>Loading…</i>";
+    modal.style.display = "block";
+
+    fetch(extensionAPI.runtime.getURL("src/configs/index.json")).then(r => r.json()).then(async (files) => {
+        const items = [];
+        for (const file of files) {
+            try {
+                const c = await fetch(extensionAPI.runtime.getURL("src/configs/" + file)).then(r => r.json());
+                items.push({ file, name: file.replace(/\.json$/, ""), description: c._description || "" });
+            } catch { /* skip unreadable config */ }
+        }
+        if (!items.length) {
+            list.innerHTML = "<i>No bundled configs found. Run <code>make copy-configs</code> in ./app.</i>";
+            return;
+        }
+        list.innerHTML = items.map(it => `
+            <div class="library-item mgb-10">
+                <div>
+                    <b>${sanitizeHtml(it.name)}</b>
+                    <button class="library-add" data-file="${sanitizeHtml(it.file)}">Add</button>
+                </div>
+                <div class="library-desc">${sanitizeHtml(it.description.slice(0, 240))}${it.description.length > 240 ? "…" : ""}</div>
+            </div>`).join("");
+        list.querySelectorAll(".library-add").forEach(btn => btn.addEventListener("click", handleLibraryAdd));
+    }).catch(() => {
+        list.innerHTML = "<i>Could not load the config library.</i>";
+    });
+}
+
+function handleLibraryAdd() {
+    const file = this.dataset.file;
+    const name = file.replace(/\.json$/, "");
+    fetch(extensionAPI.runtime.getURL("src/configs/" + file)).then(r => r.text()).then((text) => {
+        const content = checkHookConfig(text);
+        if (content) {
+            addHook({ name, content });
+            errorMessage(`Loaded "${name}" config!`, window.errorConfig, "success");
+            document.getElementById("library-modal").style.display = "none";
+        }
+    }).catch(() => {
+        errorMessage(`Could not load "${name}".`, window.errorConfig);
+    });
+}
+
+function handleLibraryClose() {
+    document.getElementById("library-modal").style.display = "none";
+}
+
 // Modal events
 function handleModalCloseClick() {
     window.hookName.value = "";
@@ -485,6 +558,8 @@ export {
     handleRemoveHeader,
     handleChangeBody,
     updateHeadersList,
+    // AI Bridge
+    handleSaveBridge,
     // Devtools
     handleDevtool,
     // Table
@@ -503,6 +578,10 @@ export {
     handleImportClick,
     handleImport,
     handleTabEditor,
+    // Library
+    handleOpenLibrary,
+    handleLibraryAdd,
+    handleLibraryClose,
     // Modal
     handleModalCloseClick,
     handleModalClose,

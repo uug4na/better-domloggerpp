@@ -28,6 +28,8 @@ import {
     handleChangeWebhookURL,
     handleAddHeader,
     handleChangeBody,
+    // AI Bridge
+    handleSaveBridge,
     updateHeadersList,
     // Devtools
     handleDevtool,
@@ -47,6 +49,9 @@ import {
     handleImport,
     handleSelect,
     handleTabEditor,
+    // Library
+    handleOpenLibrary,
+    handleLibraryClose,
     // Modal
     handleModalCloseClick,
     handleModalClose,
@@ -169,6 +174,15 @@ const initStorageVariables = () => {
             window.devtoolsPanel = data.devtoolsPanel;
         }
         updateUIButtons("devtools", window.devtoolsPanel);
+    });
+
+    window.bridgeConfig = { url: "", enabled: false };
+    extensionAPI.storage.local.get("bridgeConfig", (data) => {
+        if (data.bridgeConfig) {
+            window.bridgeConfig = data.bridgeConfig;
+        }
+        document.getElementById("bridgeURL").value = window.bridgeConfig.url || "";
+        document.getElementById("bridgeEnabled").checked = !!window.bridgeConfig.enabled;
     });
 
     window.removeHeaders = false;
@@ -348,6 +362,7 @@ const main = async () => {
     window.hookName = document.getElementById("hookName");
     window.errorCaido = document.getElementById("errorCaido");
     window.errorWebhook = document.getElementById("errorWebhook");
+    window.errorBridge = document.getElementById("errorBridge");
     window.errorConfig = document.getElementById("errorConfig");
     window.errorTable = document.getElementById("errorTable");
 
@@ -377,6 +392,9 @@ const main = async () => {
     document.getElementById("webhook-savebody").addEventListener("click", handleChangeBody);
     document.getElementById("webhook-addHeader").addEventListener("click", handleAddHeader);
 
+    // AI Bridge
+    document.getElementById("bridge-save").addEventListener("click", handleSaveBridge);
+
     // Devtools
     document.getElementsByClassName("devtools-button")[0].addEventListener("click", handleDevtool);
     document.getElementsByClassName("devtools-button")[1].addEventListener("click", handleDevtool);
@@ -390,6 +408,12 @@ const main = async () => {
     document.getElementById("remove").addEventListener("click", handleRemove);
     document.getElementById("import").addEventListener("click", handleImportClick);
     document.getElementById("importFile").addEventListener("change", handleImport);
+    document.getElementById("library").addEventListener("click", handleOpenLibrary);
+    document.getElementById("library-close").addEventListener("click", handleLibraryClose);
+    window.addEventListener("click", (e) => {
+        const lm = document.getElementById("library-modal");
+        if (e.target === lm) lm.style.display = "none";
+    });
     initEditorShortcuts();
 
     // Modal

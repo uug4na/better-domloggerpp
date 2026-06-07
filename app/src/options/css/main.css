@@ -250,6 +250,50 @@ button {
     text-align: center;
 }
 
+.error.msg-error   { color: #e5534b; }
+.error.msg-success { color: #3fa34d; }
+.error.msg-info    { color: var(--text-color); opacity: 0.85; }
+
+/* ** Config library ** */
+#library-list {
+    text-align: left;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.library-item {
+    border: var(--border);
+    border-radius: var(--border-radius);
+    padding: 10px 12px;
+}
+
+.library-item > div:first-child {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.library-desc {
+    opacity: 0.8;
+    margin-top: 6px;
+    font-size: 0.9em;
+}
+
+.library-add {
+    border: var(--border);
+    border-radius: var(--border-radius);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: var(--font-familly);
+    cursor: pointer;
+    padding: 4px 14px;
+}
+
+.library-add:hover {
+    background-color: var(--text-color);
+    color: var(--background-color);
+}
+
 /* ** Devtools ** */
 .flex-horizontal {
     display: flex;

@@ -107,8 +107,19 @@ const updateUIColors = (colorsData) => {
     document.getElementById("background-color").value = colorsData["backgroundColor"];
 } 
 
-const errorMessage = (msg, errorDiv) => {
+const errorMessage = (msg, errorDiv, severity = "error") => {
+    if (!errorDiv) return;
     errorDiv.innerText = msg;
+    errorDiv.classList.remove("msg-error", "msg-success", "msg-info");
+    errorDiv.classList.add(`msg-${severity}`);
+    if (errorDiv._clearTimer) clearTimeout(errorDiv._clearTimer);
+    // Errors persist until the next action; success/info auto-clear so they never read as stale
+    if (severity !== "error") {
+        errorDiv._clearTimer = setTimeout(() => {
+            errorDiv.innerText = "";
+            errorDiv.classList.remove("msg-error", "msg-success", "msg-info");
+        }, 4000);
+    }
 }
 
 const addHook = (hook) => {
@@ -138,7 +149,7 @@ const save = (index, hookContent) => {
         window.hooksData.hooksSettings[index].content = hookContent;
         extensionAPI.storage.local.set({ hooksData: window.hooksData });
         updateUIEditorSelect(window.selectedHook, window.hooksData.hooksSettings);
-        errorMessage("Config updated!", window.errorConfig);
+        errorMessage("Config updated!", window.errorConfig, "success");
     }
 }
 
@@ -180,7 +191,7 @@ const checkHookConfig = (config) => {
         }
 
         if (key === "removeHeaders" && !Array.isArray(config[key])) {
-            errorMessage(`${key} as invalid content, must be an array!`, window.errorConfig);
+            errorMessage(`${key} has invalid content, must be an array!`, window.errorConfig);
             return null;
         } else if (key === "removeHeaders") {
             continue;
@@ -192,25 +203,25 @@ const checkHookConfig = (config) => {
         }
 
         if (typeof config[key] !== "object") {
-            errorMessage(`${key} as invalid content, must be an object!`, window.errorConfig);
+            errorMessage(`${key} has invalid content, must be an object!`, window.errorConfig);
             return null;
         }
     }
 
     if (config["onload"] !== undefined && typeof config["onload"] !== "string") {
-        errorMessage(`onload as an invalid content, must be a string!`, window.errorConfig);
+        errorMessage(`onload has invalid content, must be a string!`, window.errorConfig);
         return null;
     }
 
     if (config["_description"] !== undefined && typeof config["_description"] !== "string") {
-        errorMessage(`_description as an invalid content, must be a string!`, window.errorConfig);
+        errorMessage(`_description has invalid content, must be a string!`, window.errorConfig);
         return null;
     }
 
     // Check hooks structure
     for (let category in config["hooks"]) {
         if (typeof config["hooks"][category] !== "object") {
-            errorMessage(`hooks["${category}"] as an invalid content, must be an object!`, window.errorConfig);
+            errorMessage(`hooks["${category}"] has invalid content, must be an object!`, window.errorConfig);
             return null;
         }
 
@@ -222,7 +233,7 @@ const checkHookConfig = (config) => {
             }
 
             if (!Array.isArray(config["hooks"][category][type])) {
-                errorMessage(`hooks["${category}"]["${type}"] as an invalid content, must be an array!`, window.errorConfig);
+                errorMessage(`hooks["${category}"]["${type}"] has invalid content, must be an array!`, window.errorConfig);
                 return null;
             }
 
@@ -242,7 +253,7 @@ const checkHookConfig = (config) => {
     // Check config structure
     for (let target in config["config"]) {
         if (typeof config["config"][target] !== "object") {
-            errorMessage(`config["${target}"] as an invalid content, must be an object!`, window.errorConfig);
+            errorMessage(`config["${target}"] has invalid content, must be an object!`, window.errorConfig);
             return null;
         }
 
@@ -255,12 +266,12 @@ const checkHookConfig = (config) => {
             // Keep / Remove
             if (key === "match" || key === "!match" || key === "matchTrace" || key === "!matchTrace" || key === "requiredHooks") {
                 if (!Array.isArray(config["config"][target][key])) {
-                    errorMessage(`config["${target}"]["${key}"] as an invalid content, must be an array!`, window.errorConfig);
+                    errorMessage(`config["${target}"]["${key}"] has invalid content, must be an array!`, window.errorConfig);
                     return null;
                 }
                 for (let value of config["config"][target][key]) {
                     if (typeof value !== "string") {
-                        errorMessage(`config["${target}"]["${key}"] > ${JSON.stringify(value)} as an invalid content, must be a string!`, window.errorConfig);
+                        errorMessage(`config["${target}"]["${key}"] > ${JSON.stringify(value)} has invalid content, must be a string!`, window.errorConfig);
                         return null;
                     }
                 }
@@ -269,12 +280,12 @@ const checkHookConfig = (config) => {
             // Hook function
             if (key === "beforeEnter" || key === "afterEnter") {
                 if (isHookingFunction) {
-                    errorMessage(`Impossible to use "beforeEnter" in config when hooking Function in hooks!`, window.errorConfig);
+                    errorMessage(`Impossible to use "${key}" in config when hooking Function in hooks!`, window.errorConfig);
                     return null;
                 }
 
                 if (typeof config["config"][target][key] !== "string") {
-                    errorMessage(`config["${target}"]["${key}"] as an invalid content, must be a string!`, window.errorConfig);
+                    errorMessage(`config["${target}"]["${key}"] has invalid content, must be a string!`, window.errorConfig);
                     return null;
                 }
             }
@@ -282,7 +293,7 @@ const checkHookConfig = (config) => {
             // Alert system
             if (key === "alert") {
                 if (typeof config["config"][target][key] !== "object") {
-                    errorMessage(`config["${target}"]["${key}"] as an invalid content, must be an object!`, window.errorConfig);
+                    errorMessage(`config["${target}"]["${key}"] has invalid content, must be an object!`, window.errorConfig);
                     return null;
                 }
 
@@ -294,19 +305,19 @@ const checkHookConfig = (config) => {
 
                     if (subKey === "match" || subKey === "!match") {
                         if (!Array.isArray(config["config"][target][key][subKey])) {
-                            errorMessage(`config["${target}"]["${key}"]["${subKey}"] as an invalid content, must be an array!`, window.errorConfig);
+                            errorMessage(`config["${target}"]["${key}"]["${subKey}"] has invalid content, must be an array!`, window.errorConfig);
                             return null;
                         }
                         for (let value of config["config"][target][key][subKey]) {
                             if (typeof value !== "string") {
-                                errorMessage(`config["${target}"]["${key}"]["${subKey}"] > ${JSON.stringify(value)} as an invalid content, must be a string!`, window.errorConfig);
+                                errorMessage(`config["${target}"]["${key}"]["${subKey}"] > ${JSON.stringify(value)} has invalid content, must be a string!`, window.errorConfig);
                                 return null;
                             }
                         }
                     }
 
                     if (subKey === "notification" && typeof config["config"][target][key][subKey] !== "boolean") {
-                        errorMessage(`config["${target}"]["${key}"]["${subKey}"] > ${JSON.stringify(config["config"][target][subKey])} as an invalid content, must be a boolean!`, window.errorConfig);
+                        errorMessage(`config["${target}"]["${key}"]["${subKey}"] > ${JSON.stringify(config["config"][target][subKey])} has invalid content, must be a boolean!`, window.errorConfig);
                         return null;
                     }
                 }
@@ -315,7 +326,7 @@ const checkHookConfig = (config) => {
             // Show this=
             if (key === "showThis") {
                 if (typeof config["config"][target][key] !== "boolean") {
-                    errorMessage(`config["${target}"]["${key}"] as an invalid content, must be a boolean!`, window.errorConfig);
+                    errorMessage(`config["${target}"]["${key}"] has invalid content, must be a boolean!`, window.errorConfig);
                     return null;
                 }
             }

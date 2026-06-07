@@ -94,6 +94,13 @@ const init = () => {
             MessagesHandler.caidoConfig = data.caidoConfig;
         }
 
+        // Set default bridgeConfig (AI MCP bridge) settings
+        if (data.bridgeConfig === undefined) {
+            extensionAPI.storage.local.set({ bridgeConfig: { url: "", enabled: false } });
+        }
+        // Connect the AI bridge after browser restart
+        DLBridge.configure(data.bridgeConfig);
+
         // Set devtoolsPanel attribute after browser restart
         if (typeof data.devtoolsPanel === "boolean") {
             MessagesHandler.devtoolsPanel = data.devtoolsPanel;
@@ -127,6 +134,9 @@ const init = () => {
                         break;
                     case "caidoConfig":
                         MessagesHandler.caidoConfig = values.newValue;
+                        break;
+                    case "bridgeConfig":
+                        DLBridge.configure(values.newValue);
                         break;
                 }
             }

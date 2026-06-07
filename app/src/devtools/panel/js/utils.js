@@ -77,6 +77,31 @@ function getHighlightColor(backgroundColor, textColor) {
     return "#FF0000"; // red
 }
 
+// Translucent version of the highlight color so matches get a background box, not just colored text
+const getHighlightBg = (hex) => {
+    try {
+        const bigint = parseInt(hex.slice(1), 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return `rgba(${r}, ${g}, ${b}, 0.18)`;
+    } catch {
+        return "transparent";
+    }
+}
+
+// Map a row to a severity tier used for left-border coloring
+const DANGEROUS_SINK = /innerHTML|outerHTML|document\.write|writeln|insertAdjacentHTML|setHTMLUnsafe|parseHTMLUnsafe|createContextualFragment|\beval\b|execScript|setTimeout|setInterval|\bFunction\b|\.src\b|srcdoc|\.href\b|location|setAttribute|appendChild|insertBefore|postMessage|__proto__|importScripts/i;
+const MEDIUM_SINK = /^set:|cookie|fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|[sS]torage|window\.open/;
+const rowSeverity = (data) => {
+    if (!data) return null;
+    if (data.badge) return "high";
+    const sink = `${data.sink || ""}`;
+    if (DANGEROUS_SINK.test(sink)) return "high";
+    if (data.type === "event" || MEDIUM_SINK.test(sink)) return "med";
+    return null;
+}
+
 const cleanData = (data) => {
     data = data.replaceAll(" ", "&nbsp;");
     data = data.replaceAll("\t", "&#011;");
@@ -91,10 +116,16 @@ const colorData = (data, filterData) => {
     return data;
 }
 
+let lastFilterData = null;
 const colorFilter = () => {
     const filterData = $("#filter-data").val();
+    // Only re-render cells when the filter term changed; newly-added cells (not yet
+    // rendered) are always filled. Avoids a full per-cell DOM pass on every append.
+    const changed = filterData !== lastFilterData;
+    lastFilterData = filterData;
 
     $(".show-data").each(function() {
+        if (!changed && this.dataset.rendered === "1") return;
         let data = $(this).attr("data-data");
         data = applyFilter(data, filterData);
         if (filterData) {
@@ -102,6 +133,7 @@ const colorFilter = () => {
         }
         data = `${data["before"] ? sanitizeHtml("<redacted>") : ""} ${data["data"]} ${data["after"] ? sanitizeHtml("<redacted>") : ""}`;
         $(this).html(`${data}<br><u>View more</u>`);
+        this.dataset.rendered = "1";
     });
 }
 
@@ -130,7 +162,10 @@ export {
     sanitizeHtml,
     unsanitizeHtml,
     applyFilter,
+    escapeRegExp,
     getHighlightColor,
+    getHighlightBg,
+    rowSeverity,
     colorData,
     cleanData,
     colorFilter,

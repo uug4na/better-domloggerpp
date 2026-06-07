@@ -134,6 +134,10 @@
                     <title>Import</title>
                     <use xlink:href="./img/file-import-solid.svg#file-import-icon"></use>
                 </svg>
+                <svg id="library" width="21px" viewBox="0 0 512 512" class="pointer text-color mgl-10 mgr-10">
+                    <title>Config library (load a bundled config)</title>
+                    <use xlink:href="./img/bullseye-solid.svg#bullseye-icon"></use>
+                </svg>
                 <input type="file" id="importFile" hidden>
             </div>
             <div class="json-editor mgb-10">
@@ -148,6 +152,15 @@
                     <input class="mgb-20" id="hookName" placeholder="name">
                     <input id="modalAction" hidden>
                     <button id="modalButton"></button>
+                </div>
+            </div>
+
+            <div id="library-modal" class="modal">
+                <div class="modal-content">
+                    <span id="library-close" class="close">&times;</span>
+                    <h3 class="mgb-10">Config library</h3>
+                    <p class="mgb-20">Load a ready-made hooking config bundled with the extension. It is added as a new, editable config.</p>
+                    <div id="library-list"></div>
                 </div>
             </div>
         </div>
@@ -253,6 +266,20 @@
                 </div>
             </div>
             <span class="error" id="errorWebhook"></span>
+
+            <hr class="mgt-20 mgb-20">
+            <div class="mgt-10 mgb-10">
+                <h3>AI Bridge (WebSocket &rarr; MCP)</h3>
+                <p class="mgb-5"><small>Stream sink hits to the local DOMLogger MCP server so an AI (Claude) can read them and drive an autonomous hunt loop. Localhost only. See <code>mcp-server/</code>.</small></p>
+                <input id="bridgeURL" name="bridgeURL" placeholder="ws://127.0.0.1:8788" style="width: 100%;" class="mgb-10"><br>
+                <label class="mgt-5 mgb-10" style="display:inline-block;">
+                    <input id="bridgeEnabled" type="checkbox"> Enable AI bridge
+                </label>
+                <div class="mgb-10">
+                    <button id="bridge-save" class="mgt-10">Save Bridge</button>
+                </div>
+                <span class="error" id="errorBridge"></span>
+            </div>
         </div>
 
         <div id="devtools" class="tab" style="display: none; width: 90%; padding-left: 5%;">

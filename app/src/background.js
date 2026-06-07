@@ -2,7 +2,7 @@
 const extensionAPI = typeof browser !== "undefined" ? browser : chrome;
 
 // Chromium manifest v3 uses workers and can only loads 1 background script. Use importScripts to import everything.
-const backgroundScripts = [ "utils.js", "caido-auth.js", "handlers.js", "init.js", "shortcuts.js" ];
+const backgroundScripts = [ "utils.js", "caido-auth.js", "bridge.js", "handlers.js", "init.js", "shortcuts.js" ];
 if (typeof browser === "undefined") {
     for (const c of backgroundScripts) {
         importScripts(`./background/${c}`);
@@ -109,8 +109,10 @@ MessagesHandler = new class {
 
         // Send to webhook only if not comes from JSON import -> avoid backend duplicate
         // We can't filter using dupKey has we can't have the Caido / Webhook state here
-        if (!data.import)
+        if (!data.import) {
             this.webhookQueue.push({ ...data }); // Shallow copy to avoid modifying the original data
+            DLBridge.send({ ...data }); // Stream raw hit to the AI bridge (server dedups on dupKey)
+        }
 
         if (!this.storage[data.dupKey]) {
             // Sanitize data.data -> Datable blocks HTML tag search...

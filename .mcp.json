@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "domlogger": {
+      "command": "npx",
+      "args": ["tsx", "mcp-server/src/server.ts"],
+      "env": { "DOMLOGGER_WS_PORT": "8788" }
+    },
+    "burp": {
+      "type": "sse",
+      "url": "http://127.0.0.1:9876"
+    }
+  }
+}

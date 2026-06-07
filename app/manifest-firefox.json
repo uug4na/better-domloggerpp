@@ -43,6 +43,7 @@
             "src/background/shortcuts.js",
             "src/background/libs/graphql-ws.js",
             "src/background/caido-auth.js",
+            "src/background/bridge.js",
             "src/background.js"
         ],
         "persistent": true

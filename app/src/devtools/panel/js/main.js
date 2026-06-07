@@ -26,6 +26,15 @@ import {
     handleFilterButton,
     handleAdvancedSearch,
     handleFilterSpan,
+    handleAlertsFilter,
+    handleClearAllFilters,
+    // Toolbar
+    handleConfigSwitch,
+    handleCanaryChange,
+    handleCanaryCopy,
+    handleModeToggle,
+    // Legend
+    handleToggleLegend,
     // Debug
     handleRedirection,
     handleStartDebug,
@@ -43,6 +52,8 @@ import {
 
 import {
     getHighlightColor,
+    getHighlightBg,
+    rowSeverity,
     sanitizeHtml
 } from "./utils.js";
 
@@ -58,10 +69,16 @@ const initColors = () => {
         var root = document.documentElement;
         root.style.setProperty("--text-color", window.colorsData["textColor"]);
         root.style.setProperty("--background-color", window.colorsData["backgroundColor"]);
-        root.style.setProperty("--highlight-color", getHighlightColor(window.colorsData["backgroundColor"], window.colorsData["textColor"]));
+        const highlight = getHighlightColor(window.colorsData["backgroundColor"], window.colorsData["textColor"]);
+        root.style.setProperty("--highlight-color", highlight);
+        root.style.setProperty("--highlight-bg", getHighlightBg(highlight));
         document.body.style.opacity = "1";
     });
 }
+
+// Multi-select tag state shared with the filter handlers
+window.activeTags = new Set();
+window.alertsOnly = false;
 
 const initButtons = () => {
     window.hookKeys = [];
@@ -70,12 +87,43 @@ const initButtons = () => {
             window.defaultHookKeys = Object.keys(data.hooksData.hooksSettings[0].content["hooks"]);
             window.hookKeys = window.defaultHookKeys.concat(Object.keys(data.hooksData.hooksSettings[data.hooksData.selectedHook].content["hooks"]));
         }
+        const allActive = window.activeTags.size === 0 ? " chip-active" : "";
         $("#filter-buttons").html(`
-        <button class="filter-button" data-filter="All" style="background-color: var(--text-color); color: var(--background-color)"><b>ALL</b></button>
-        ${window.hookKeys.map(k => `<button class="filter-button" data-filter="${sanitizeHtml(k)}"><b>${sanitizeHtml(k)}</b></button>`).join(" ")}
+        <button class="filter-button${allActive}" data-filter="All"><b>ALL</b></button>
+        ${window.hookKeys.map(k => `<button class="filter-button${window.activeTags.has(k) ? " chip-active" : ""}" data-filter="${sanitizeHtml(k)}"><b>${sanitizeHtml(k)}</b></button>`).join(" ")}
         `)
         $(".filter-button").on("click", handleFilterButton);
     })
+}
+
+// Populate the hunt toolbar (config switcher, canary, recon/hunt mode) from storage
+const initToolbar = () => {
+    extensionAPI.storage.local.get("hooksData", (data) => {
+        if (!data.hooksData) return;
+        window.panelHooksData = data.hooksData;
+        const settings = data.hooksData.hooksSettings || [];
+        const selected = data.hooksData.selectedHook;
+
+        // Config switcher — skip index 0 (GLOBAL, auto-merged, not selectable)
+        const opts = settings
+            .map((c, i) => ({ i, name: c.name }))
+            .filter(o => o.i !== 0)
+            .map(o => `<option value="${o.i}"${o.i === selected ? " selected" : ""}>${sanitizeHtml(o.name)}</option>`)
+            .join("");
+        $("#panel-hook").html(opts);
+
+        // Canary + mode reflect the *selected* config
+        const content = settings[selected] && settings[selected].content ? settings[selected].content : {};
+        const canary = content.globals && content.globals.canary ? content.globals.canary : "";
+        $("#panel-canary").val(canary);
+
+        const wildcard = content.config && content.config["*"] && Array.isArray(content.config["*"].match)
+            ? content.config["*"].match.join(" ") : "";
+        const isHunt = wildcard.includes("globals.canary");
+        const isRecon = /return\s+\/\.\*\//.test(wildcard) && !isHunt;
+        $("#mode-recon").toggleClass("mode-active", isRecon);
+        $("#mode-hunt").toggleClass("mode-active", isHunt);
+    });
 }
 
 const updateUITable = () => {
@@ -102,6 +150,12 @@ const updateUITable = () => {
     window.table.columns.adjust().draw();
 }
 
+// Fill the available vertical space with the scroll body
+const computeScrollY = () => {
+    const reserved = 260; // toolbar + filters + footer chrome
+    return Math.max(220, window.innerHeight - reserved) + "px";
+}
+
 const initTable = () => {
     window.tableConfig = {
         colIds: [ "dupKey", "tag", "alert", "type", "date", "href", "frame", "sink", "data", "trace", "debug" ],
@@ -121,13 +175,14 @@ const initTable = () => {
         order: [[window.tableConfig.colIds.indexOf("date"), "desc"]],
         colReorder: true,
         paging: true,
+        deferRender: true,
         scrollCollapse: true,
-        scrollY: "600px",
+        scrollY: computeScrollY(),
         data: [],
         search: {
             smart: false
         },
-        columnDefs: [{ 
+        columnDefs: [{
             targets: [window.tableConfig.colIds.indexOf("dupKey"), window.tableConfig.colIds.indexOf("tag")],
             visible: false,
             searchable: true
@@ -146,6 +201,10 @@ const initTable = () => {
             { data: "debug", render: renderDebug},
             { title: "", data: null, orderable: false, render: (data, type, row) => { return `<span data-dupKey="${row.dupKey}" class="remove-one">&times;</span>` }}
         ],
+        createdRow: (rowEl, data) => {
+            const sev = rowSeverity(data);
+            if (sev) rowEl.classList.add(`sev-${sev}`);
+        },
         drawCallback: handleTableRedraw
     });
 
@@ -168,6 +227,23 @@ const initTable = () => {
     $("#filter-data").on("keyup", handleFilterData);
     $("#advanced-search").on("submit", handleAdvancedSearch);
     $("#table").on("click", ".filter-span", handleFilterSpan);
+    $("#alerts-only").on("click", handleAlertsFilter);
+    $("#clear-filters").on("click", handleClearAllFilters);
+    // Clicking an alert bell jumps to the alerts-only view
+    $("#table").on("click", ".alert-bell", () => {
+        if (!$("#alerts-only").hasClass("active")) $("#alerts-only").click();
+    });
+
+    // Toolbar
+    $("#panel-hook").on("change", handleConfigSwitch);
+    $("#panel-canary").on("change", handleCanaryChange);
+    $("#canary-copy").on("click", handleCanaryCopy);
+    $("#mode-recon").on("click", handleModeToggle);
+    $("#mode-hunt").on("click", handleModeToggle);
+
+    // Legend
+    $("#legend-toggle").on("click", handleToggleLegend);
+    $("#legend-close").on("click", handleToggleLegend);
 
     // Remove line
     $("#table").on("click", ".remove-one", handleRemoveRow);
@@ -180,17 +256,76 @@ const initTable = () => {
     $("#settings").on("click", handleSettingsNavigation);
 }
 
+// Refresh the "Alerts (N)" count + the empty-state overlay
+const updateAlertsCount = () => {
+    if (!window.table) return;
+    let n = 0;
+    window.table.rows().every(function () {
+        if (this.data() && this.data().badge) n++;
+    });
+    $("#alerts-count").text(`(${n})`);
+}
+
+const updateEmptyState = () => {
+    if (!window.table) return;
+    const empty = window.table.rows().count() === 0;
+    const el = document.getElementById("empty-state");
+    if (!el) return;
+    if (!empty) {
+        el.hidden = true;
+        return;
+    }
+    extensionAPI.storage.local.get(["allowedDomains", "hooksData"], (data) => {
+        const nDomains = (data.allowedDomains || []).length;
+        let configName = "—";
+        if (data.hooksData && data.hooksData.hooksSettings[data.hooksData.selectedHook]) {
+            configName = data.hooksData.hooksSettings[data.hooksData.selectedHook].name;
+        }
+        el.innerHTML = `
+            <h3>No sink hits captured yet</h3>
+            <ul>
+                <li><span class="${nDomains ? "es-ok" : "es-todo"}">${nDomains ? "✓" : "•"}</span> Allowed domains: ${nDomains} configured ${nDomains ? "" : "— add the target in the popup or settings"}</li>
+                <li><span class="es-ok">✓</span> Active config: <b>${sanitizeHtml(configName)}</b></li>
+                <li><span class="es-todo">•</span> Interact with the page to trigger hooked sinks</li>
+            </ul>
+            <p class="es-hint">Recon mode logs every sink hit. Switch to Hunt and seed your canary
+            (<b>${sanitizeHtml($("#panel-canary").val() || "set one above")}</b>) into inputs to filter the table to your own data.</p>`;
+        el.hidden = false;
+    });
+}
+
+// Coalesce incoming rows into one draw per tick instead of one draw per message.
+// setTimeout (not requestAnimationFrame) so rows still flush when the panel is
+// backgrounded — rAF is paused in hidden tabs.
+window.pendingRows = [];
+let flushScheduled = false;
+const flushPending = () => {
+    flushScheduled = false;
+    if (!window.pendingRows.length) return;
+    const batch = window.pendingRows;
+    window.pendingRows = [];
+    const table = $("#table").DataTable();
+    table.rows.add(batch).draw(false);
+    updateAlertsCount();
+    updateEmptyState();
+}
+
 const handleMessage = (data) => {
-    let table = $("#table").DataTable();
-    table.row.add(data);
-    table.draw();
+    window.pendingRows.push(data);
+    if (!flushScheduled) {
+        flushScheduled = true;
+        setTimeout(flushPending, 50);
+    }
 }
 
 const init = (data) => {
     let table = $("#table").DataTable();
     table.rows.add(data);
     table.draw();
+    updateAlertsCount();
+    updateEmptyState();
 }
+
 const main = async () => {
     // Init font-size
     window.devtoolsFontSize = "16px";
@@ -201,15 +336,40 @@ const main = async () => {
         document.body.style.opacity = "1";
         document.documentElement.style.setProperty("--font-size", window.devtoolsFontSize);
     });
+    // Safety net: never leave the panel invisible if a storage callback stalls
+    setTimeout(() => { document.body.style.opacity = "1"; }, 1500);
 
     window.handleMessage = handleMessage;
     window.initButtons = initButtons;
+    window.initToolbar = initToolbar;
     window.initColors = initColors;
     window.updateUITable = updateUITable;
+    window.updateEmptyState = updateEmptyState;
+    window.updateAlertsCount = updateAlertsCount;
     window.init = init;
     initColors();
     initButtons();
+    initToolbar();
     initTable();
+    updateEmptyState();
+
+    // Auto-open the legend once
+    extensionAPI.storage.local.get("panelLegendSeen", (data) => {
+        if (!data.panelLegendSeen) {
+            document.getElementById("legend").hidden = false;
+            extensionAPI.storage.local.set({ panelLegendSeen: true });
+        }
+    });
+
+    // Clear the toolbar badge when the analyst is actually looking at the panel
+    const clearBadge = () => extensionAPI.runtime.sendMessage({ action: "clearBadge" });
+    window.addEventListener("focus", clearBadge);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) clearBadge(); });
+
+    // Esc closes the modal
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") $("#modal").css("display", "none");
+    });
 
     // Handle storage updates
     extensionAPI.storage.onChanged.addListener((changes, areaName) => {
@@ -218,6 +378,7 @@ const main = async () => {
                 switch (key) {
                     case "hooksData":
                         window.initButtons();
+                        window.initToolbar();
                         break;
                     case "colorsData":
                         window.initColors();
@@ -236,9 +397,22 @@ const main = async () => {
 }
 
 const resize = () => {
-    if (window.table)
+    if (window.table) {
+        const sy = computeScrollY();
+        const settings = window.table.settings()[0];
+        settings.oScroll.sY = sy;
+        if (settings.nScrollBody) {
+            $(settings.nScrollBody).css(settings.oScroll.bCollapse ? "max-height" : "height", sy);
+        }
         window.table.columns.adjust().draw();
+    }
 }
 
-window.addEventListener("DOMContentLoaded", main);
+// Run as soon as the DOM is ready — and immediately if it already is (module may
+// finish evaluating after DOMContentLoaded has already fired).
+if (document.readyState === "loading") {
+    window.addEventListener("DOMContentLoaded", main);
+} else {
+    main();
+}
 window.addEventListener("resize", resize);

@@ -4,7 +4,7 @@ import {
 
 function renderAlert(data, type) {
     if (type === "display") {
-        data = data ? `<svg width="21px" viewBox="0 0 512 512" class="pointer text-color mgl-10 mgr-10">
+        data = data ? `<svg width="21px" viewBox="0 0 512 512" class="pointer text-color mgl-10 mgr-10 alert-bell" title="Alert matched — click to show only alerts">
             <use xlink:href="./img/bell-solid.svg#bell-icon"></use>
         </svg>` : "";
     }
@@ -23,7 +23,7 @@ function renderHref(data, type, row) {
         } catch {
             href = "=ERROR="
         }
-        data = `<span class="filter-span">${sanitizeHtml(href.origin + href.pathname)}</span>&nbsp;<img src="./img/arrow-up-right-from-square-solid.svg" data-href="${sanitizeHtml(row.href)}" width="15px" class="goto-link svg-color">`;
+        data = `<span class="filter-span">${sanitizeHtml(href.origin + href.pathname)}</span>&nbsp;<img src="./img/arrow-up-right-from-square-solid.svg" data-href="${sanitizeHtml(row.href)}" width="15px" class="goto-link svg-color" title="Navigate to this URL">`;
     }
     return data;
 }
@@ -65,7 +65,7 @@ function renderTrace(data, type) {
 
 function renderDebug(data, type, row) {
     if (type === "display") {
-        data = `<span class="start-debug" data-href="${row.href}" data-debug="${data}"><u>Goto</u></span>`;
+        data = `<span class="start-debug" data-href="${row.href}" data-debug="${data}" title="Reload and pause in the debugger when this sink fires again"><u>Break here</u></span>`;
     }
     return data;
 }

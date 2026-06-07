@@ -13,9 +13,24 @@
 </head>
 
 <body>
-    <header>
-        <h1 style="margin-top: 20px; margin-bottom: 20px;">DOMLogger++</h1>
-        <hr class="mgb-20">
+    <header id="toolbar" class="toolbar hide-fullscreen">
+        <span class="brand">DOMLogger++</span>
+        <span class="tb-group">
+            <label class="tb-label" for="panel-hook">Config</label>
+            <select id="panel-hook" class="tb-select" title="Active hooking config (also changeable from the popup)"></select>
+        </span>
+        <span class="tb-group">
+            <span id="mode-toggle" class="mode-toggle" title="Recon logs every sink hit; Hunt filters the table to your canary. Toggles config['*'].match of the active config.">
+                <button id="mode-recon" class="mode-btn" data-mode="recon" type="button">Recon</button>
+                <button id="mode-hunt" class="mode-btn" data-mode="hunt" type="button">Hunt</button>
+            </span>
+        </span>
+        <span class="tb-group tb-canary">
+            <label class="tb-label" for="panel-canary">Canary</label>
+            <input id="panel-canary" class="tb-input" type="text" spellcheck="false" autocomplete="off"
+                   title="The marker the active config filters/alerts on. Seed this exact string into every input you control.">
+            <button id="canary-copy" class="tb-icon-btn" type="button" title="Copy canary to clipboard">⧉</button>
+        </span>
     </header>
 
     <div id="fullscreen" data-fullscreen="off" title="Fullscreen ON/OFF" class="fullscreen-button">
@@ -27,40 +42,62 @@
 
     <main>
         <div id="filters" class="mgb-30 hide-fullscreen">
-            <div id="filter-buttons">
-                <button class="filter-button" data-filter="EVENT"><b>EVENT</b></button>
-                <button class="filter-button" data-filter="MISC"><b>MISC</b></button>
+            <div id="filter-actions">
+                <button id="alerts-only" class="filter-button action-chip" type="button" title="Show only rows that triggered an alert">Alerts <span id="alerts-count">(0)</span></button>
+                <button id="clear-filters" class="filter-button action-chip" type="button" title="Reset every filter, the search box and selected tags">Clear all</button>
             </div>
+            <div id="filter-buttons"></div>
             <br>
             <div id="filter-inputs">
                 <span class="mgr-5">&nbsp;&nbsp;<b>Data / Canary:</b></span>
-                <input id="filter-data" class="filter-data mgb-10" type="text"><br>
+                <input id="filter-data" class="filter-data mgb-10" type="text" placeholder="substring to highlight in Data (e.g. your canary)"><br>
                 <span class="mgr-5"><b>Advanced search:</b></span>
                 <form id="advanced-search" class="no-newline">
-                    <input name="filters" class="advanced-search mgb-10" type="text">
+                    <input name="filters" class="advanced-search mgb-10" type="text"
+                           placeholder="sink=innerHTML;frame=top"
+                           title="Semicolon-separated key=value pairs. Keys: tag, type, date, href, frame, sink, trace, debug (the Data column is excluded — use Data / Canary above).">
                 </form>
             </div>
             <hr>
+        </div>
+
+        <div id="legend" class="legend hide-fullscreen" hidden>
+            <div class="legend-head">
+                <b>Legend</b>
+                <span id="legend-close" class="pointer" title="Close legend">&times;</span>
+            </div>
+            <dl>
+                <dt>Tag</dt><dd>Hook category from your config (filter chips above filter on it).</dd>
+                <dt>Alert <svg width="14px" viewBox="0 0 512 512" class="text-color"><use xlink:href="./img/bell-solid.svg#bell-icon"></use></svg></dt><dd>An alert rule in your config matched this hit. Click <b>Alerts</b> to see only these.</dd>
+                <dt>Frame</dt><dd>Which window fired the sink (top / opener / frames[n]).</dd>
+                <dt>Sink</dt><dd>The hooked JS API that was called.</dd>
+                <dt>Trace</dt><dd>Captured JS stack — click <b>Show</b>, then a frame to open its source.</dd>
+                <dt>Debug → Break here</dt><dd>Reloads the page and pauses in the debugger the moment this sink fires again with the same canary.</dd>
+                <dt>Canary</dt><dd>A unique marker you seed into inputs. In <b>Hunt</b> mode the table shows only rows carrying it; in <b>Recon</b> mode every sink hit is logged.</dd>
+                <dt>Row color</dt><dd>Left border = severity: <span class="sev-dot sev-high"></span> high (alert or dangerous sink), <span class="sev-dot sev-med"></span> medium, <span class="sev-dot sev-low"></span> low.</dd>
+            </dl>
         </div>
 
         <div id="modal" class="modal">
             <div id="modal-content" class="modal-content"></div>
         </div>
 
+        <div id="empty-state" class="empty-state" hidden></div>
+
         <table id="table">
             <thead>
                 <tr>
-                    <th>dupKey</th>
-                    <th>Tag</th>
-                    <th>Alert</th>
-                    <th>Type</th>
-                    <th>Date</th>
-                    <th>Href</th>
-                    <th>Frame</th>
-                    <th>Sink</th>
-                    <th>Data</th>
-                    <th>Trace</th>
-                    <th>Debug</th>
+                    <th title="Internal dedup key">dupKey</th>
+                    <th title="Hook category from your config">Tag</th>
+                    <th title="An alert rule matched this hit">Alert</th>
+                    <th title="Hook type (function / class / attribute / event)">Type</th>
+                    <th title="When the sink fired">Date</th>
+                    <th title="Page URL where the sink fired (arrow = navigate there)">Href</th>
+                    <th title="Which window fired the sink (top / opener / frames[n])">Frame</th>
+                    <th title="The hooked JS API that was called">Sink</th>
+                    <th title="Arguments passed into the sink">Data</th>
+                    <th title="Captured JS stack trace">Trace</th>
+                    <th title="Reload and break in the debugger when this sink fires again">Debug</th>
                     <th></th>
                 </tr>
             </thead>
@@ -94,6 +131,7 @@
                 <title>Extension Settings</title>
                 <use xlink:href="./img/gear-solid.svg#gear-icon"></use>
             </svg>
+            <span id="legend-toggle" class="pointer text-color mgl-10 mgr-10 help-badge" title="Show/hide the column legend">?</span>
             <input type="file" id="importFile" hidden>
         </div>
         <span>v1.0.11</span>
